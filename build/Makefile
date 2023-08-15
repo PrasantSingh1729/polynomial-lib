@@ -12,9 +12,9 @@ CFLAGS += $(OPTIMIZATION)\
           $(DEBUG_FLAGS)\
           -D__LINUX_OS__ \
           -Wall
-ROOT_FOLDER = /mnt/d/Programming/Office/effective-programming/
+ROOT_FOLDER = ../
 SRC_FOLDER = $(ROOT_FOLDER)/src
-SRC_TEST = $(SRC_FOLDER)/myprog.c $(SRC_FOLDER)/stack.c
+SRC_TEST = $(SRC_FOLDER)/polynomial.c $(SRC_FOLDER)/main.c
 INC_DIR = -I$(ROOT_FOLDER)/inc 
 
 BIN = $(ROOT_FOLDER)/bin/output.out

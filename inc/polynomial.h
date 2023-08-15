@@ -5,12 +5,17 @@ typedef struct __node
 {
     double coeff;
     unsigned int power;
+    struct __node *next;
 }*term,node;
 
 typedef struct __poly
 {
     term termlist;
 }*poly;
+
+term create_term(double coeff, unsigned int power);
+poly init_poly();
+
 
 poly s_to_poly(char *s);
 char* poly_to_s(poly p);
