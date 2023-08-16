@@ -45,6 +45,14 @@ term duplicate_termlist(term list)
     return dub_list;
 }
 
+/* return duplicate poly of given poly */
+poly duplicate_poly(poly p)
+{
+    poly dub_poly = init_poly();
+    dub_poly->termlist->next = duplicate_termlist(p->termlist->next);
+    return dub_poly;
+}
+
 void swap_char(char *a, char *b)
 {
     char temp = *a;
@@ -162,11 +170,33 @@ void destroy_poly(poly p)
     }
 }
 
+// NOTE Query: Can I combine add and subtract function to reduce code size
+
+/* remove terms from poly who's coefficient is zero */
+void simplify_poly(poly p)
+{
+    term pptr = p->termlist;
+    while (pptr->next != NULL)
+    {
+        if (pptr->next->coeff == 0.0)
+        {
+            /* delete term */
+            term temp = pptr->next;
+            pptr->next = pptr->next->next;
+            free(temp);
+        }
+        else
+        {
+            pptr = pptr->next;
+        }
+    }
+}
+
 /* Add two poly and return resultant poly */
 poly add_poly(poly p1, poly p2)
 {
     poly result = init_poly();
-    /* putting reult term pointer on header so that I can insert in front and move forward*/
+    /* putting result term pointer on header so that I can insert in front and move forward*/
     term resultptr = result->termlist;
     /* putting p1 term pointer on first term */
     term p1ptr = p1->termlist->next;
@@ -181,7 +211,7 @@ poly add_poly(poly p1, poly p2)
             p1ptr = p1ptr->next;
             p2ptr = p2ptr->next;
         }
-        else if (p1ptr->power > p2ptr->power)
+        else if (p1ptr->power < p2ptr->power)
         {
             resultptr->next = create_term(p2ptr->coeff, p2ptr->power);
             p2ptr = p2ptr->next;
@@ -208,7 +238,7 @@ poly add_poly(poly p1, poly p2)
 poly subtract_poly(poly p1, poly p2)
 {
     poly result = init_poly();
-    /* putting reult term pointer on header so that I can insert in front and move forward*/
+    /* putting result term pointer on header so that I can insert in front and move forward*/
     term resultptr = result->termlist;
     /* putting p1 term pointer on first term */
     term p1ptr = p1->termlist->next;
@@ -223,7 +253,7 @@ poly subtract_poly(poly p1, poly p2)
             p1ptr = p1ptr->next;
             p2ptr = p2ptr->next;
         }
-        else if (p1ptr->power > p2ptr->power)
+        else if (p1ptr->power < p2ptr->power)
         {
             resultptr->next = create_term(p2ptr->coeff, p2ptr->power);
             p2ptr = p2ptr->next;
@@ -242,7 +272,15 @@ poly subtract_poly(poly p1, poly p2)
     else if (p2ptr != NULL)
     {
         resultptr->next = duplicate_termlist(p2ptr);
+        /* make sign opposite of appended terms from p2 */
+        resultptr = resultptr->next;
+        while (resultptr != NULL)
+        {
+            resultptr->coeff = -(resultptr->coeff);
+            resultptr = resultptr->next;
+        }
     }
+    simplify_poly(result);
     return result;
 }
 
@@ -278,10 +316,68 @@ poly multiply_poly(poly p1, poly p2)
     {
         poly prev_result = result;
         poly temp = multiply_one_term_with_poly(p1ptr, p2);
-        result = add_poly(temp,prev_result);
+        result = add_poly(temp, prev_result);
         p1ptr = p1ptr->next;
         destroy_poly(prev_result);
         destroy_poly(temp);
     }
     return result;
+}
+
+/* check if divisor can further divide dividend */
+int can_divide(poly dividend, poly divisor)
+{
+    /* Dividend not empty and dividend degree is greater than divisor */
+    return dividend->termlist->next != NULL &&
+           dividend->termlist->next->power >= divisor->termlist->next->power;
+}
+
+/* divide two poly and return quotient if mode=0 otherwise return remainder */
+poly divide_modulus_helper(poly p1, poly p2, int mode)
+{
+    /* result = p1/p2 */
+    poly quotient = init_poly();
+    term quotientptr = quotient->termlist;
+    poly dividend = duplicate_poly(p1);
+    poly divisor = p2;
+    /* Divide by zero test */
+    if (divisor->termlist->next == NULL)
+    {
+        printf("Error: Divide by zero error");
+        exit(1);
+    }
+    /* while dividend not empty and dividend degree is greater than divisor */
+    while (can_divide(dividend, divisor))
+    {
+        /* generating qterm by dividing first term of both */
+        term qterm = create_term(dividend->termlist->next->coeff / divisor->termlist->next->coeff,
+                                 dividend->termlist->next->power - divisor->termlist->next->power);
+
+        /* append qterm to quotient */
+        quotientptr->next = qterm;
+        quotientptr = quotientptr->next;
+
+        poly temp = multiply_one_term_with_poly(qterm, divisor);
+
+        /* reducing dividend by subtracting the product of qterm and divisor from dividend*/
+        poly prev_dividend = dividend;
+        dividend = subtract_poly(prev_dividend, temp);
+        destroy_poly(prev_dividend);
+    }
+    if(mode==0)
+        return quotient;
+    else
+        return dividend; /* portion which is not able to divide with divisor is remainder */
+}
+
+/* Divide two poly and return resultant poly (quotient)*/
+poly divide_poly(poly p1, poly p2)
+{
+    return divide_modulus_helper(p1, p2, 0);
+}
+
+/* Divide two poly and return resultant poly (remainder)*/
+poly modulus_poly(poly p1, poly p2)
+{
+    return divide_modulus_helper(p1, p2, 1);
 }
