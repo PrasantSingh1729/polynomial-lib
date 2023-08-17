@@ -67,7 +67,7 @@ int main()
     // destroy_poly(p1);
     // destroy_poly(p2);
     // destroy_poly(p3);
-    poly p = s_to_poly("- 3.8 - 10.2x^2 - 10 + 100x + x + x^4 + 3x^2 + 0");
+    poly p = s_to_poly("- 00 - 10.2x^2 - 1 + 100x + x + x^4 + 3x^2 + 0");
     char *s = poly_to_s(p);
     printf("%s\n",s);
     free(s);

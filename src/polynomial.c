@@ -274,6 +274,94 @@ unsigned int parse_unsigned_int(char *s, int *i)
     return num;
 }
 
+void FrontBackSplit(term source,
+                    term *frontRef, term *backRef)
+{
+    term fast;
+    term slow;
+    slow = source;
+    fast = source->next;
+
+    /* Advance 'fast' two nodes, and advance 'slow' one node */
+    while (fast != NULL)
+    {
+        fast = fast->next;
+        if (fast != NULL)
+        {
+            slow = slow->next;
+            fast = fast->next;
+        }
+    }
+
+    /* 'slow' is before the midpoint in the list, so split it in two
+    at that point. */
+    *frontRef = source;
+    *backRef = slow->next;
+    slow->next = NULL;
+}
+
+term SortedMerge(term a, term b)
+{
+    term result = NULL;
+
+    /* Base cases */
+    if (a == NULL)
+        return (b);
+    else if (b == NULL)
+        return (a);
+
+    /* Pick either a or b, and recur */
+    if (a->power >= b->power)
+    {
+        result = a;
+        result->next = SortedMerge(a->next, b);
+    }
+    else
+    {
+        result = b;
+        result->next = SortedMerge(a, b->next);
+    }
+    return (result);
+}
+
+void MergeSort(term *termlist)
+{
+    term head = *termlist;
+    term a;
+    term b;
+
+    /* Base case -- length 0 or 1 */
+    if ((head == NULL) || (head->next == NULL))
+    {
+        return;
+    }
+
+    FrontBackSplit(head, &a, &b);
+    MergeSort(&a);
+    MergeSort(&b);
+
+    /* answer = merge the two sorted lists together */
+    *termlist = SortedMerge(a, b);
+}
+
+void merge_same_expo(term t)
+{
+    while (t->next != NULL)
+    {
+        if (t->next->power == t->power)
+        {
+            term temp = t->next;
+            t->coeff = t->coeff + temp->coeff;
+            t->next = temp->next;
+            free(temp);
+        }
+        else
+        {
+            t = t->next;
+        }
+    }
+}
+
 /* ------------------------------ Main Functions -------------------------------- */
 
 /* Free the memory occupied by termlist and poly structure */
@@ -339,43 +427,61 @@ poly modulus_poly(poly p1, poly p2)
 char *poly_to_s(poly p)
 {
     char *result = NULL;
-    char term_str[100]; // Adjust the size based on your needs
-    term_str[0] = '\0';
-    result = (char *)malloc(1 * sizeof(char)); // Allocate space for the result string
-    result[0] = '\0';                          // Initialize result string as an empty string
     if (p != NULL)
     {
-        int is_first_term = 1;
-        term ptr = p->termlist->next;
-        while (ptr != NULL)
+        char term_str[100]; // any term can't exceed 100 character size
+        term_str[0] = '\0';
+        int size_of_result = 0;
+        int j = 1,i=0;
+        // if j==1 count the number of character required for result
+        // if j==2 allocate memory to result and fill result
+        while (j <= 2)
         {
-            term_str[0] = '\0';
-            if (is_first_term)
+            if (j == 2)
             {
-                sprintf(term_str + strlen(term_str), "%g", ptr->coeff);
-                is_first_term = 0;
+                result = (char *)malloc((size_of_result + 1) * sizeof(char)); // Allocate space for the result string
+                result[0] = '\0';                                             // Initialize result string as an empty string
             }
-            else
+            int is_first_term = 1;
+            term ptr = p->termlist->next;
+            while (ptr != NULL)
             {
-                sprintf(term_str + strlen(term_str), "%+g", ptr->coeff);
+                term_str[0] = '\0';
+                if (is_first_term)
+                {
+                    if (ptr->coeff == -1 && ptr->power != 0)
+                        sprintf(term_str + strlen(term_str), "-");
+                    else if (ptr->coeff != 1 || ptr->power == 0)
+                        sprintf(term_str + strlen(term_str), "%g", ptr->coeff);
+                    is_first_term = 0;
+                }
+                else
+                {
+                    if (ptr->coeff == 1 && ptr->power != 0)
+                        sprintf(term_str + strlen(term_str), "+");
+                    else if (ptr->coeff == -1 && ptr->power != 0)
+                        sprintf(term_str + strlen(term_str), "-");
+                    else
+                        sprintf(term_str + strlen(term_str), "%+g", ptr->coeff);
+                }
+                if (ptr->power == 1)
+                {
+                    sprintf(term_str + strlen(term_str), "x");
+                }
+                else if (ptr->power != 0)
+                {
+                    sprintf(term_str + strlen(term_str), "x^%u", ptr->power);
+                }
+                if(j==1)
+                    size_of_result+= strlen(term_str);
+                else
+                {
+                    strcpy(result+i,term_str); // fill result
+                    i+=strlen(term_str);
+                }
+                ptr = ptr->next;
             }
-            if (ptr->power == 1)
-            {
-                sprintf(term_str + strlen(term_str), "x");
-            }
-            else if (ptr->power != 0)
-            {
-                sprintf(term_str + strlen(term_str), "x^%u", ptr->power);
-            }
-            char *new_result = (char *)malloc((strlen(result) + strlen(term_str) + 1) * sizeof(char));
-            strcpy(new_result, result);
-            // Concatenate the current term to the new result
-            strcat(new_result, term_str);
-
-            // Free the old result and update it to the new result
-            free(result);
-            result = new_result;
-            ptr = ptr->next;
+            j++;
         }
     }
     return result;
@@ -463,6 +569,9 @@ poly s_to_poly(const char *user_s)
         temp->next = pptr->next;
         pptr->next = temp;
     }
+    MergeSort(&(p->termlist->next));
+    merge_same_expo(p->termlist->next);
+    simplify_poly(p);
     return p;
 }
 
