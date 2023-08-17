@@ -115,12 +115,10 @@ void s_to_poly(char *s)
 
 int main() {
     // Write C code here
-    printf("hello world\n");
-    char s[] = "x ^2 *2 3 + x^1 + 2";
-    int flag = is_space_between_number(s);
-    remove_whitespace(s);
-    printf("%s \nSpace:%d\n",s,flag);
-    s_to_poly(s);
+    char s[50];
+    sprintf(s,"%g",2.0303000);
+    sprintf(s+strlen(s),"+%g",3.450);
+    printf("%s\n",s);
     return 0;
 }
 

@@ -381,3 +381,48 @@ poly modulus_poly(poly p1, poly p2)
 {
     return divide_modulus_helper(p1, p2, 1);
 }
+
+char* poly_to_s(poly p)
+{
+    char *result = NULL;
+    char term_str[100]; // Adjust the size based on your needs
+    term_str[0]='\0';
+    result = (char *)malloc(1 * sizeof(char)); // Allocate space for the result string
+    result[0] = '\0'; // Initialize result string as an empty string
+    if(p!=NULL)
+    {
+        int is_first_term = 1;
+        term ptr = p->termlist->next;
+        while(ptr!=NULL)
+        {
+            term_str[0] = '\0';
+            if(is_first_term)
+            {
+                sprintf(term_str+strlen(term_str),"%g",ptr->coeff);
+                is_first_term = 0;
+            }
+            else
+            {
+                sprintf(term_str+strlen(term_str),"%+g",ptr->coeff);
+            }
+            if(ptr->power==1)
+            {
+                sprintf(term_str+strlen(term_str),"x");
+            }
+            else if(ptr->power!=0)
+            {
+                sprintf(term_str+strlen(term_str),"x^%u",ptr->power);
+            }
+            char *new_result = (char *)malloc((strlen(result) + strlen(term_str) + 1) * sizeof(char));
+            strcpy(new_result, result);
+            // Concatenate the current term to the new result
+            strcat(new_result, term_str);
+
+            // Free the old result and update it to the new result
+            free(result);
+            result = new_result;
+            ptr = ptr->next;
+        }
+    }
+    return result;
+}

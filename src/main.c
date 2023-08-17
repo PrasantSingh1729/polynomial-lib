@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include "polynomial.h"
 
 poly array_to_poly(int arr[][2], int n)
@@ -17,19 +19,27 @@ void print_poly(poly p)
 {
     if(p!=NULL)
     {
+        int is_first_term = 1;
         term ptr = p->termlist->next;
         while(ptr!=NULL)
         {
-            if(ptr->coeff>=0)
-                printf("+%g",ptr->coeff);
-            else
+            if(is_first_term)
+            {
                 printf("%g",ptr->coeff);
-            if(ptr->power==0)
-                printf("");
-            else if(ptr->power==1)
-                printf("x");
+                is_first_term = 0;
+            }
             else
+            {
+                printf("%+g",ptr->coeff);
+            }
+            if(ptr->power==1)
+            {
+                printf("x");
+            }
+            else if(ptr->power!=0)
+            {
                 printf("x^%u",ptr->power);
+            }
             ptr = ptr->next;
         }
     }
@@ -51,6 +61,9 @@ int main()
     poly p3 = divide_poly(p1,p2);
     print_poly(p3);
     printf("\n");
+    char *s = poly_to_s(p3);
+    printf("string: %s\n",s);
+    free(s);
     destroy_poly(p1);
     destroy_poly(p2);
     destroy_poly(p3);
