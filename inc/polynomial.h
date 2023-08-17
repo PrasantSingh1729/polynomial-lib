@@ -17,7 +17,7 @@ term create_term(double coeff, unsigned int power);
 poly init_poly();
 
 
-poly s_to_poly(char *s);
+poly s_to_poly(const char *s);
 char* poly_to_s(poly p);
 void destroy_poly(poly p);
 poly add_poly(poly p1, poly p2);

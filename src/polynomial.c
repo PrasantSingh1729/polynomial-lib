@@ -4,6 +4,8 @@
 #include <ctype.h>
 #include "polynomial.h"
 
+/* -------------------- Helper Functions ------------------------ */
+
 /* create a term with provided coefficient and power */
 term create_term(double coeff, unsigned int power)
 {
@@ -53,6 +55,7 @@ poly duplicate_poly(poly p)
     return dub_poly;
 }
 
+/* Swap two char */
 void swap_char(char *a, char *b)
 {
     char temp = *a;
@@ -60,6 +63,7 @@ void swap_char(char *a, char *b)
     *b = temp;
 }
 
+/* check if there is space in between two number */
 int is_space_between_number(char *s)
 {
     int i = 0;
@@ -80,6 +84,7 @@ int is_space_between_number(char *s)
     return flag;
 }
 
+/* remove whitespace from string */
 void remove_whitespace(char *s)
 {
     int i = 0;
@@ -95,82 +100,6 @@ void remove_whitespace(char *s)
     }
     s[i] = '\0';
 }
-
-/*
-poly s_to_poly(char *s)
-{
-    if (is_space_between_number(s))
-    {
-        printf("Error: Space between number is not allowed.");
-        exit(1);
-    }
-    remove_whitespace(s);
-    int i=0;
-    while(s[i]!='\0')
-    {
-        int sign = 1;
-        double coeff=1;
-        unsigned int power=0;
-        int power_set_flag=0, coeff_set_flag=0;
-        if(s[i]=='+' | s[i]=='-')
-        {
-            if(s[i]=='-')
-                sign = -1;
-            i++;
-        }
-        if(s[i]=='x')
-        {
-            power = 1;
-            i++;
-            if(s[i]=='^')
-            {
-                i++;
-                scanf(s+i,"%d",&power);
-                while(isdigit(s[i]))
-                    i++;
-                power_set_flag = 1;
-            }
-
-            if(s[i]=='*')
-            {
-                i++;
-                scanf(s+i,"%f",&coeff);
-                int decimal_flag=0;
-                while((s[i]>='0' && s[i]<='9') | s[i]=='.')
-                {
-                    if(s[i]=='.' && decimal_flag==0)
-                    {
-                        decimal_flag=1;
-                    }
-                    else if(s[i]=='.')
-                    {
-                        break;
-                    }
-                }
-                coeff_set_flag = 1;
-            }
-        }
-        printf("%lf, %ul\n", coeff, power);
-    }
-}
-*/
-
-/* Free the memory occupied by termlist and poly structure */
-void destroy_poly(poly p)
-{
-    if (p != NULL)
-    {
-        while (p->termlist != NULL)
-        {
-            term temp = p->termlist;
-            p->termlist = p->termlist->next;
-            free(temp);
-        }
-        free(p);
-    }
-}
-
-// NOTE Query: Can I combine add and subtract function to reduce code size
 
 /* remove terms from poly who's coefficient is zero */
 void simplify_poly(poly p)
@@ -189,6 +118,120 @@ void simplify_poly(poly p)
         {
             pptr = pptr->next;
         }
+    }
+}
+
+/* Multiply one term with given poly and return resultant poly */
+poly multiply_one_term_with_poly(term t, poly p)
+{
+    /* t * p = result */
+    poly result = init_poly();
+    /* putting resultptr on header node */
+    term resultptr = result->termlist;
+    /* putting pptr on first term of poly p*/
+    term pptr = p->termlist->next;
+    while (pptr != NULL)
+    {
+        /* multiplying term with term and appending into result */
+        resultptr->next = create_term((pptr->coeff) * (t->coeff),
+                                      (pptr->power) + (t->power));
+        resultptr = resultptr->next;
+        pptr = pptr->next;
+    }
+    return result;
+}
+
+/* check if divisor can further divide dividend */
+int can_divide(poly dividend, poly divisor)
+{
+    /* Dividend not empty and dividend degree is greater than divisor */
+    return dividend->termlist->next != NULL &&
+           dividend->termlist->next->power >= divisor->termlist->next->power;
+}
+
+/* divide two poly and return quotient if mode=0 otherwise return remainder */
+poly divide_modulus_helper(poly p1, poly p2, int mode)
+{
+    /* result = p1/p2 */
+    poly quotient = init_poly();
+    term quotientptr = quotient->termlist;
+    poly dividend = duplicate_poly(p1);
+    poly divisor = p2;
+    /* Divide by zero test */
+    if (divisor->termlist->next == NULL)
+    {
+        printf("Error: Divide by zero error");
+        exit(1);
+    }
+    /* while dividend not empty and dividend degree is greater than divisor */
+    while (can_divide(dividend, divisor))
+    {
+        /* generating qterm by dividing first term of both */
+        term qterm = create_term(dividend->termlist->next->coeff / divisor->termlist->next->coeff,
+                                 dividend->termlist->next->power - divisor->termlist->next->power);
+
+        /* append qterm to quotient */
+        quotientptr->next = qterm;
+        quotientptr = quotientptr->next;
+
+        poly temp = multiply_one_term_with_poly(qterm, divisor);
+
+        /* reducing dividend by subtracting the product of qterm and divisor from dividend*/
+        poly prev_dividend = dividend;
+        dividend = subtract_poly(prev_dividend, temp);
+        destroy_poly(prev_dividend);
+    }
+    if (mode == 0)
+        return quotient;
+    else
+        return dividend; /* portion which is not able to divide with divisor is remainder */
+}
+
+/* parse double from string and move pointer ahead of parsed part*/
+double parse_double(char *s, int *i)
+{
+    double num;
+    sscanf(s + (*i), "%lf", &num);
+    int decimal_flag = 0;
+    while (s[*i] != '\0' && (isdigit(s[*i]) | s[*i] == '.'))
+    {
+        if (s[*i] == '.' && decimal_flag == 0)
+        {
+            decimal_flag = 1;
+        }
+        else if (s[*i] == '.')
+        {
+            break;
+        }
+        (*i)++;
+    }
+    return num;
+}
+
+/* parse unsigned int from string and move pointer ahead of parsed part*/
+unsigned int parse_unsigned_int(char *s, int *i)
+{
+    unsigned int num;
+    sscanf(s + (*i), "%d", &num);
+    while (isdigit(s[*i]))
+        (*i)++;
+    return num;
+}
+
+/* ------------------------------ Main Functions -------------------------------- */
+
+/* Free the memory occupied by termlist and poly structure */
+void destroy_poly(poly p)
+{
+    if (p != NULL)
+    {
+        while (p->termlist != NULL)
+        {
+            term temp = p->termlist;
+            p->termlist = p->termlist->next;
+            free(temp);
+        }
+        free(p);
     }
 }
 
@@ -284,26 +327,6 @@ poly subtract_poly(poly p1, poly p2)
     return result;
 }
 
-/* Multiply one term with given poly and return resultant poly */
-poly multiply_one_term_with_poly(term t, poly p)
-{
-    /* t * p = result */
-    poly result = init_poly();
-    /* putting resultptr on header node */
-    term resultptr = result->termlist;
-    /* putting pptr on first term of poly p*/
-    term pptr = p->termlist->next;
-    while (pptr != NULL)
-    {
-        /* multiplying term with term and appending into result */
-        resultptr->next = create_term((pptr->coeff) * (t->coeff),
-                                      (pptr->power) + (t->power));
-        resultptr = resultptr->next;
-        pptr = pptr->next;
-    }
-    return result;
-}
-
 /* Multiply two poly and return resultant poly */
 poly multiply_poly(poly p1, poly p2)
 {
@@ -324,52 +347,6 @@ poly multiply_poly(poly p1, poly p2)
     return result;
 }
 
-/* check if divisor can further divide dividend */
-int can_divide(poly dividend, poly divisor)
-{
-    /* Dividend not empty and dividend degree is greater than divisor */
-    return dividend->termlist->next != NULL &&
-           dividend->termlist->next->power >= divisor->termlist->next->power;
-}
-
-/* divide two poly and return quotient if mode=0 otherwise return remainder */
-poly divide_modulus_helper(poly p1, poly p2, int mode)
-{
-    /* result = p1/p2 */
-    poly quotient = init_poly();
-    term quotientptr = quotient->termlist;
-    poly dividend = duplicate_poly(p1);
-    poly divisor = p2;
-    /* Divide by zero test */
-    if (divisor->termlist->next == NULL)
-    {
-        printf("Error: Divide by zero error");
-        exit(1);
-    }
-    /* while dividend not empty and dividend degree is greater than divisor */
-    while (can_divide(dividend, divisor))
-    {
-        /* generating qterm by dividing first term of both */
-        term qterm = create_term(dividend->termlist->next->coeff / divisor->termlist->next->coeff,
-                                 dividend->termlist->next->power - divisor->termlist->next->power);
-
-        /* append qterm to quotient */
-        quotientptr->next = qterm;
-        quotientptr = quotientptr->next;
-
-        poly temp = multiply_one_term_with_poly(qterm, divisor);
-
-        /* reducing dividend by subtracting the product of qterm and divisor from dividend*/
-        poly prev_dividend = dividend;
-        dividend = subtract_poly(prev_dividend, temp);
-        destroy_poly(prev_dividend);
-    }
-    if(mode==0)
-        return quotient;
-    else
-        return dividend; /* portion which is not able to divide with divisor is remainder */
-}
-
 /* Divide two poly and return resultant poly (quotient)*/
 poly divide_poly(poly p1, poly p2)
 {
@@ -382,36 +359,37 @@ poly modulus_poly(poly p1, poly p2)
     return divide_modulus_helper(p1, p2, 1);
 }
 
-char* poly_to_s(poly p)
+/* convert poly to string and return pointer to that string */
+char *poly_to_s(poly p)
 {
     char *result = NULL;
     char term_str[100]; // Adjust the size based on your needs
-    term_str[0]='\0';
+    term_str[0] = '\0';
     result = (char *)malloc(1 * sizeof(char)); // Allocate space for the result string
-    result[0] = '\0'; // Initialize result string as an empty string
-    if(p!=NULL)
+    result[0] = '\0';                          // Initialize result string as an empty string
+    if (p != NULL)
     {
         int is_first_term = 1;
         term ptr = p->termlist->next;
-        while(ptr!=NULL)
+        while (ptr != NULL)
         {
             term_str[0] = '\0';
-            if(is_first_term)
+            if (is_first_term)
             {
-                sprintf(term_str+strlen(term_str),"%g",ptr->coeff);
+                sprintf(term_str + strlen(term_str), "%g", ptr->coeff);
                 is_first_term = 0;
             }
             else
             {
-                sprintf(term_str+strlen(term_str),"%+g",ptr->coeff);
+                sprintf(term_str + strlen(term_str), "%+g", ptr->coeff);
             }
-            if(ptr->power==1)
+            if (ptr->power == 1)
             {
-                sprintf(term_str+strlen(term_str),"x");
+                sprintf(term_str + strlen(term_str), "x");
             }
-            else if(ptr->power!=0)
+            else if (ptr->power != 0)
             {
-                sprintf(term_str+strlen(term_str),"x^%u",ptr->power);
+                sprintf(term_str + strlen(term_str), "x^%u", ptr->power);
             }
             char *new_result = (char *)malloc((strlen(result) + strlen(term_str) + 1) * sizeof(char));
             strcpy(new_result, result);
@@ -426,3 +404,90 @@ char* poly_to_s(poly p)
     }
     return result;
 }
+
+/* convert string to poly and return poly */
+poly s_to_poly(const char *user_s)
+{
+    /* string literal are mutable that's why creating copy */
+    int len = strlen(user_s);
+    char s[len];
+    strcpy(s, user_s);
+
+    /* creating poly to return */
+    poly p = init_poly();
+    term pptr = p->termlist;
+
+    if (is_space_between_number(s))
+    {
+        printf("Error: Space between number is not allowed.\n");
+        exit(1);
+    }
+    remove_whitespace(s);
+
+    int sign;
+    double coeff;
+    unsigned int power;
+    int i = 0;
+    while (s[i] != '\0')
+    {
+        sign = 1;
+        coeff = 1;
+        power = 0;
+        if (s[i] == '+' | s[i] == '-')
+        {
+            if (s[i] == '-')
+                sign = -1;
+            i++;
+        }
+        // case: x^<power>*<coeff>
+        if (s[i] == 'x')
+        {
+            power = 1;
+            i++;
+            if (s[i] == '^')
+            {
+                i++;
+                power = parse_unsigned_int(s, &i);
+            }
+
+            if (s[i] == '*')
+            {
+                i++;
+                coeff = parse_double(s, &i);
+            }
+        }
+        // case: <coeff>[*]x^<power>
+        else if (isdigit(s[i]))
+        {
+            coeff = parse_double(s, &i);
+            if (s[i] == '*')
+                i++;
+            if (s[i] == 'x')
+            {
+                power = 1;
+                i++;
+                if (s[i] == '^')
+                {
+                    i++;
+                    power = parse_unsigned_int(s, &i);
+                }
+            }
+        }
+        // not reached next sign or end of string hence error
+        if (s[i] != '+' && s[i] != '-' && s[i] != '\0')
+        {
+            // invalid format
+            printf("Error: Invalid input string format\n");
+            exit(1);
+        }
+
+        coeff = coeff * sign;
+        // creating term and inserting into poly
+        term temp = create_term(coeff, power);
+        temp->next = pptr->next;
+        pptr->next = temp;
+    }
+    return p;
+}
+
+/* ----------------------------------------------------------------------------- */
