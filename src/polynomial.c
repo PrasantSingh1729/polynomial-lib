@@ -121,6 +121,62 @@ void simplify_poly(poly p)
     }
 }
 
+/* if mode=0 add two poly otherwise subtract */
+poly add_subtract_helper(poly p1, poly p2, int mode)
+{
+    poly result = init_poly();
+    /* putting result term pointer on header so that I can insert in front and move forward*/
+    term resultptr = result->termlist;
+    /* putting p1 term pointer on first term */
+    term p1ptr = p1->termlist->next;
+    /* putting p2 term pointer on first term */
+    term p2ptr = p2->termlist->next;
+
+    while (p1ptr != NULL && p2ptr != NULL)
+    {
+        if (p1ptr->power == p2ptr->power)
+        {
+            if (mode == 0) // for addition
+                resultptr->next = create_term(p1ptr->coeff + p2ptr->coeff, p1ptr->power);
+            else // for subtraction
+                resultptr->next = create_term(p1ptr->coeff - p2ptr->coeff, p1ptr->power);
+            p1ptr = p1ptr->next;
+            p2ptr = p2ptr->next;
+        }
+        else if (p1ptr->power < p2ptr->power)
+        {
+            resultptr->next = create_term(p2ptr->coeff, p2ptr->power);
+            p2ptr = p2ptr->next;
+        }
+        else
+        {
+            resultptr->next = create_term(p1ptr->coeff, p1ptr->power);
+            p1ptr = p1ptr->next;
+        }
+        resultptr = resultptr->next;
+    }
+    if (p1ptr != NULL)
+    {
+        resultptr->next = duplicate_termlist(p1ptr);
+        if (mode != 0) // for subtraction
+        {
+            /* make sign opposite of appended terms from p2 */
+            resultptr = resultptr->next;
+            while (resultptr != NULL)
+            {
+                resultptr->coeff = -(resultptr->coeff);
+                resultptr = resultptr->next;
+            }
+        }
+    }
+    else if (p2ptr != NULL)
+    {
+        resultptr->next = duplicate_termlist(p2ptr);
+    }
+    simplify_poly(result);
+    return result;
+}
+
 /* Multiply one term with given poly and return resultant poly */
 poly multiply_one_term_with_poly(term t, poly p)
 {
@@ -238,93 +294,13 @@ void destroy_poly(poly p)
 /* Add two poly and return resultant poly */
 poly add_poly(poly p1, poly p2)
 {
-    poly result = init_poly();
-    /* putting result term pointer on header so that I can insert in front and move forward*/
-    term resultptr = result->termlist;
-    /* putting p1 term pointer on first term */
-    term p1ptr = p1->termlist->next;
-    /* putting p2 term pointer on first term */
-    term p2ptr = p2->termlist->next;
-
-    while (p1ptr != NULL && p2ptr != NULL)
-    {
-        if (p1ptr->power == p2ptr->power)
-        {
-            resultptr->next = create_term(p1ptr->coeff + p2ptr->coeff, p1ptr->power);
-            p1ptr = p1ptr->next;
-            p2ptr = p2ptr->next;
-        }
-        else if (p1ptr->power < p2ptr->power)
-        {
-            resultptr->next = create_term(p2ptr->coeff, p2ptr->power);
-            p2ptr = p2ptr->next;
-        }
-        else
-        {
-            resultptr->next = create_term(p1ptr->coeff, p1ptr->power);
-            p1ptr = p1ptr->next;
-        }
-        resultptr = resultptr->next;
-    }
-    if (p1ptr != NULL)
-    {
-        resultptr->next = duplicate_termlist(p1ptr);
-    }
-    else if (p2ptr != NULL)
-    {
-        resultptr->next = duplicate_termlist(p2ptr);
-    }
-    return result;
+    return add_subtract_helper(p1, p2, 0);
 }
 
 /* Subtract two poly and return resultant poly */
 poly subtract_poly(poly p1, poly p2)
 {
-    poly result = init_poly();
-    /* putting result term pointer on header so that I can insert in front and move forward*/
-    term resultptr = result->termlist;
-    /* putting p1 term pointer on first term */
-    term p1ptr = p1->termlist->next;
-    /* putting p2 term pointer on first term */
-    term p2ptr = p2->termlist->next;
-
-    while (p1ptr != NULL && p2ptr != NULL)
-    {
-        if (p1ptr->power == p2ptr->power)
-        {
-            resultptr->next = create_term(p1ptr->coeff - p2ptr->coeff, p1ptr->power);
-            p1ptr = p1ptr->next;
-            p2ptr = p2ptr->next;
-        }
-        else if (p1ptr->power < p2ptr->power)
-        {
-            resultptr->next = create_term(p2ptr->coeff, p2ptr->power);
-            p2ptr = p2ptr->next;
-        }
-        else
-        {
-            resultptr->next = create_term(p1ptr->coeff, p1ptr->power);
-            p1ptr = p1ptr->next;
-        }
-        resultptr = resultptr->next;
-    }
-    if (p1ptr != NULL)
-    {
-        resultptr->next = duplicate_termlist(p1ptr);
-    }
-    else if (p2ptr != NULL)
-    {
-        resultptr->next = duplicate_termlist(p2ptr);
-        /* make sign opposite of appended terms from p2 */
-        resultptr = resultptr->next;
-        while (resultptr != NULL)
-        {
-            resultptr->coeff = -(resultptr->coeff);
-            resultptr = resultptr->next;
-        }
-    }
-    simplify_poly(result);
-    return result;
+    return add_subtract_helper(p1, p2, 1);
 }
 
 /* Multiply two poly and return resultant poly */
