@@ -12,7 +12,7 @@ CFLAGS += $(OPTIMIZATION)\
           $(DEBUG_FLAGS)\
           -D__LINUX_OS__ \
           -Wall
-ROOT_FOLDER = ../
+ROOT_FOLDER = ./
 SRC_FOLDER = $(ROOT_FOLDER)/src
 SRC_TEST = $(SRC_FOLDER)/polynomial.c $(SRC_FOLDER)/main.c
 INC_DIR = -I$(ROOT_FOLDER)/inc 

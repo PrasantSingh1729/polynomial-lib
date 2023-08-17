@@ -145,7 +145,10 @@ poly add_subtract_helper(poly p1, poly p2, int mode)
         }
         else if (p1ptr->power < p2ptr->power)
         {
-            resultptr->next = create_term(p2ptr->coeff, p2ptr->power);
+            if(mode==0)
+                resultptr->next = create_term(p2ptr->coeff, p2ptr->power);
+            else
+                resultptr->next = create_term(-(p2ptr->coeff), p2ptr->power);
             p2ptr = p2ptr->next;
         }
         else
@@ -158,6 +161,10 @@ poly add_subtract_helper(poly p1, poly p2, int mode)
     if (p1ptr != NULL)
     {
         resultptr->next = duplicate_termlist(p1ptr);
+    }
+    else if (p2ptr != NULL)
+    {
+        resultptr->next = duplicate_termlist(p2ptr);
         if (mode != 0) // for subtraction
         {
             /* make sign opposite of appended terms from p2 */
@@ -168,10 +175,6 @@ poly add_subtract_helper(poly p1, poly p2, int mode)
                 resultptr = resultptr->next;
             }
         }
-    }
-    else if (p2ptr != NULL)
-    {
-        resultptr->next = duplicate_termlist(p2ptr);
     }
     simplify_poly(result);
     return result;
@@ -249,7 +252,7 @@ double parse_double(char *s, int *i)
     double num;
     sscanf(s + (*i), "%lf", &num);
     int decimal_flag = 0;
-    while (s[*i] != '\0' && (isdigit(s[*i]) | s[*i] == '.'))
+    while (s[*i] != '\0' && (isdigit(s[*i]) || s[*i] == '.'))
     {
         if (s[*i] == '.' && decimal_flag == 0)
         {
@@ -515,7 +518,7 @@ poly s_to_poly(const char *user_s)
         sign = 1;
         coeff = 1;
         power = 0;
-        if (s[i] == '+' | s[i] == '-')
+        if (s[i] == '+' || s[i] == '-')
         {
             if (s[i] == '-')
                 sign = -1;
