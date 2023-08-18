@@ -1,3 +1,8 @@
+/*
+ * polynomial.c
+ * Implementation of functions for the polynomial library.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,7 +10,7 @@
 #include <math.h>
 #include "polynomial.h"
 
-/* -------------------- Helper Functions ------------------------ */
+/* -------------------- Helper Functions ------------------------------------ */
 
 /* create a term with provided coefficient and power */
 term create_term(double coeff, unsigned int power)
@@ -212,7 +217,6 @@ int can_divide(poly dividend, poly divisor)
 /* divide two poly and return quotient if mode=0 otherwise return remainder */
 poly divide_modulus_helper(poly p1, poly p2, int mode)
 {
-    /* result = p1/p2 */
     poly quotient = init_poly();
     term quotientptr = quotient->termlist;
     poly dividend = duplicate_poly(p1);

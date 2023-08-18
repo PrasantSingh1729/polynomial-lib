@@ -48,15 +48,15 @@ void print_poly(poly p)
 int main()
 {
     poly p1, p2;
-    // char s1[100], s2[100];
-    // printf("Enter first polynomial  : ");
-    // gets(s1);
-    // printf("Enter second polynomial : ");
-    // gets(s2);
-    // p1 = s_to_poly(s1);
-    // p2 = s_to_poly(s2);
-    p1 = s_to_poly("4x^3-3x^2+3x");
-    p2 = s_to_poly("2x^2+1");
+    char s1[100], s2[100];
+    printf("Enter first polynomial  : ");
+    gets(s1);
+    printf("Enter second polynomial : ");
+    gets(s2);
+    p1 = s_to_poly(s1);
+    p2 = s_to_poly(s2);
+    // p1 = s_to_poly("4x^3-3x^2+3x");
+    // p2 = s_to_poly("2x^2+1");
     char *s;
 
     s = poly_to_s(p1);
