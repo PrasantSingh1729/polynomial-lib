@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
 #include "polynomial.h"
 
 /* -------------------- Helper Functions ------------------------ */
@@ -145,7 +146,7 @@ poly add_subtract_helper(poly p1, poly p2, int mode)
         }
         else if (p1ptr->power < p2ptr->power)
         {
-            if(mode==0)
+            if (mode == 0)
                 resultptr->next = create_term(p2ptr->coeff, p2ptr->power);
             else
                 resultptr->next = create_term(-(p2ptr->coeff), p2ptr->power);
@@ -219,7 +220,7 @@ poly divide_modulus_helper(poly p1, poly p2, int mode)
     /* Divide by zero test */
     if (divisor->termlist->next == NULL)
     {
-        printf("Error: Divide by zero error");
+        printf("Error: Divide by zero error\n");
         exit(1);
     }
     /* while dividend not empty and dividend degree is greater than divisor */
@@ -272,11 +273,12 @@ unsigned int parse_unsigned_int(char *s, int *i)
 {
     unsigned int num;
     sscanf(s + (*i), "%d", &num);
-    while (isdigit(s[*i]))
+    while (s[*i] != '\0' && isdigit(s[*i]))
         (*i)++;
     return num;
 }
 
+/* Helper function for merge-sort split termlist into two equal part */
 void FrontBackSplit(term source,
                     term *frontRef, term *backRef)
 {
@@ -303,6 +305,7 @@ void FrontBackSplit(term source,
     slow->next = NULL;
 }
 
+/* Helper function for merge-sort Merge the sort sorted termlist */
 term SortedMerge(term a, term b)
 {
     term result = NULL;
@@ -327,6 +330,7 @@ term SortedMerge(term a, term b)
     return (result);
 }
 
+/* Merge sort the given termlist */
 void MergeSort(term *termlist)
 {
     term head = *termlist;
@@ -347,148 +351,30 @@ void MergeSort(term *termlist)
     *termlist = SortedMerge(a, b);
 }
 
+/* combine the term in termlist which have same exponent
+provided they are consecutively arranged using merge sort*/
 void merge_same_expo(term t)
 {
-    while (t->next != NULL)
+    if (t != NULL)
     {
-        if (t->next->power == t->power)
+        while (t->next != NULL)
         {
-            term temp = t->next;
-            t->coeff = t->coeff + temp->coeff;
-            t->next = temp->next;
-            free(temp);
-        }
-        else
-        {
-            t = t->next;
+            if (t->next->power == t->power)
+            {
+                term temp = t->next;
+                t->coeff = t->coeff + temp->coeff;
+                t->next = temp->next;
+                free(temp);
+            }
+            else
+            {
+                t = t->next;
+            }
         }
     }
 }
 
 /* ------------------------------ Main Functions -------------------------------- */
-
-/* Free the memory occupied by termlist and poly structure */
-void destroy_poly(poly p)
-{
-    if (p != NULL)
-    {
-        while (p->termlist != NULL)
-        {
-            term temp = p->termlist;
-            p->termlist = p->termlist->next;
-            free(temp);
-        }
-        free(p);
-    }
-}
-
-/* Add two poly and return resultant poly */
-poly add_poly(poly p1, poly p2)
-{
-    return add_subtract_helper(p1, p2, 0);
-}
-
-/* Subtract two poly and return resultant poly */
-poly subtract_poly(poly p1, poly p2)
-{
-    return add_subtract_helper(p1, p2, 1);
-}
-
-/* Multiply two poly and return resultant poly */
-poly multiply_poly(poly p1, poly p2)
-{
-    poly result = init_poly();
-    /* putting p1ptr on first term of poly p1*/
-    term p1ptr = p1->termlist->next;
-    /* Picking one term at a time from p1 and multiplying with p2 */
-    /* Summing up into result poly*/
-    while (p1ptr != NULL)
-    {
-        poly prev_result = result;
-        poly temp = multiply_one_term_with_poly(p1ptr, p2);
-        result = add_poly(temp, prev_result);
-        p1ptr = p1ptr->next;
-        destroy_poly(prev_result);
-        destroy_poly(temp);
-    }
-    return result;
-}
-
-/* Divide two poly and return resultant poly (quotient)*/
-poly divide_poly(poly p1, poly p2)
-{
-    return divide_modulus_helper(p1, p2, 0);
-}
-
-/* Divide two poly and return resultant poly (remainder)*/
-poly modulus_poly(poly p1, poly p2)
-{
-    return divide_modulus_helper(p1, p2, 1);
-}
-
-/* convert poly to string and return pointer to that string */
-char *poly_to_s(poly p)
-{
-    char *result = NULL;
-    if (p != NULL)
-    {
-        char term_str[100]; // any term can't exceed 100 character size
-        term_str[0] = '\0';
-        int size_of_result = 0;
-        int j = 1,i=0;
-        // if j==1 count the number of character required for result
-        // if j==2 allocate memory to result and fill result
-        while (j <= 2)
-        {
-            if (j == 2)
-            {
-                result = (char *)malloc((size_of_result + 1) * sizeof(char)); // Allocate space for the result string
-                result[0] = '\0';                                             // Initialize result string as an empty string
-            }
-            int is_first_term = 1;
-            term ptr = p->termlist->next;
-            while (ptr != NULL)
-            {
-                term_str[0] = '\0';
-                if (is_first_term)
-                {
-                    if (ptr->coeff == -1 && ptr->power != 0)
-                        sprintf(term_str + strlen(term_str), "-");
-                    else if (ptr->coeff != 1 || ptr->power == 0)
-                        sprintf(term_str + strlen(term_str), "%g", ptr->coeff);
-                    is_first_term = 0;
-                }
-                else
-                {
-                    if (ptr->coeff == 1 && ptr->power != 0)
-                        sprintf(term_str + strlen(term_str), "+");
-                    else if (ptr->coeff == -1 && ptr->power != 0)
-                        sprintf(term_str + strlen(term_str), "-");
-                    else
-                        sprintf(term_str + strlen(term_str), "%+g", ptr->coeff);
-                }
-                if (ptr->power == 1)
-                {
-                    sprintf(term_str + strlen(term_str), "x");
-                }
-                else if (ptr->power != 0)
-                {
-                    sprintf(term_str + strlen(term_str), "x^%u", ptr->power);
-                }
-                if(j==1)
-                    size_of_result+= strlen(term_str);
-                else
-                {
-                    strcpy(result+i,term_str); // fill result
-                    i+=strlen(term_str);
-                }
-                ptr = ptr->next;
-            }
-            j++;
-        }
-    }
-    return result;
-}
 
 /* convert string to poly and return poly */
 poly s_to_poly(const char *user_s)
@@ -505,6 +391,11 @@ poly s_to_poly(const char *user_s)
     if (is_space_between_number(s))
     {
         printf("Error: Space between number is not allowed.\n");
+        exit(1);
+    }
+    if (s[len - 1] == '-' || s[len - 1] == '+')
+    {
+        printf("Error: Sign in end. There should a term after sign.\n");
         exit(1);
     }
     remove_whitespace(s);
@@ -576,6 +467,155 @@ poly s_to_poly(const char *user_s)
     merge_same_expo(p->termlist->next);
     simplify_poly(p);
     return p;
+}
+
+/* convert poly to string and return pointer to that string */
+char *poly_to_s(poly p)
+{
+    char *result = NULL;
+    if (p != NULL)
+    {
+        char term_str[100]; // any term can't exceed 100 character size
+        term_str[0] = '\0';
+        int size_of_result = 0;
+        int j = 1, i = 0;
+        // if j==1 count the number of character required for result
+        // if j==2 allocate memory to result and fill result
+        while (j <= 2)
+        {
+            if (j == 2)
+            {
+                if (size_of_result == 0) // poly have no term
+                {
+                    // insert zero in string
+                    result = (char *)malloc((2) * sizeof(char));
+                    result[0] = '0';
+                    result[1] = '\0';
+                }
+                else
+                {
+                    result = (char *)malloc((size_of_result + 1) * sizeof(char)); // Allocate space for the result string
+                    result[0] = '\0';                                             // Initialize result string as an empty string
+                }
+            }
+            int is_first_term = 1;
+            term ptr = p->termlist->next;
+            while (ptr != NULL)
+            {
+                term_str[0] = '\0';
+                if (is_first_term)
+                {
+                    if (ptr->coeff == -1 && ptr->power != 0)
+                        sprintf(term_str + strlen(term_str), "-");
+                    else if (ptr->coeff != 1 || ptr->power == 0)
+                        sprintf(term_str + strlen(term_str), "%g", ptr->coeff);
+                    is_first_term = 0;
+                }
+                else
+                {
+                    if (ptr->coeff == 1 && ptr->power != 0)
+                        sprintf(term_str + strlen(term_str), "+");
+                    else if (ptr->coeff == -1 && ptr->power != 0)
+                        sprintf(term_str + strlen(term_str), "-");
+                    else
+                        sprintf(term_str + strlen(term_str), "%+g", ptr->coeff);
+                }
+                if (ptr->power == 1)
+                {
+                    sprintf(term_str + strlen(term_str), "x");
+                }
+                else if (ptr->power != 0)
+                {
+                    sprintf(term_str + strlen(term_str), "x^%u", ptr->power);
+                }
+                if (j == 1)
+                    size_of_result += strlen(term_str);
+                else
+                {
+                    strcpy(result + i, term_str); // fill result
+                    i += strlen(term_str);
+                }
+                ptr = ptr->next;
+            }
+            j++;
+        }
+    }
+    return result;
+}
+
+/* Free the memory occupied by termlist and poly structure */
+void destroy_poly(poly p)
+{
+    if (p != NULL)
+    {
+        while (p->termlist != NULL)
+        {
+            term temp = p->termlist;
+            p->termlist = p->termlist->next;
+            free(temp);
+        }
+        free(p);
+    }
+}
+
+/* Add two poly and return resultant poly */
+poly add_poly(poly p1, poly p2)
+{
+    return add_subtract_helper(p1, p2, 0);
+}
+
+/* Subtract two poly and return resultant poly */
+poly subtract_poly(poly p1, poly p2)
+{
+    return add_subtract_helper(p1, p2, 1);
+}
+
+/* Multiply two poly and return resultant poly */
+poly multiply_poly(poly p1, poly p2)
+{
+    poly result = init_poly();
+    /* putting p1ptr on first term of poly p1*/
+    term p1ptr = p1->termlist->next;
+    /* Picking one term at a time from p1 and multiplying with p2 */
+    /* Summing up into result poly*/
+    while (p1ptr != NULL)
+    {
+        poly prev_result = result;
+        poly temp = multiply_one_term_with_poly(p1ptr, p2);
+        result = add_poly(temp, prev_result);
+        p1ptr = p1ptr->next;
+        destroy_poly(prev_result);
+        destroy_poly(temp);
+    }
+    return result;
+}
+
+/* Divide two poly and return resultant poly (quotient)*/
+poly divide_poly(poly p1, poly p2)
+{
+    return divide_modulus_helper(p1, p2, 0);
+}
+
+/* Divide two poly and return resultant poly (remainder)*/
+poly modulus_poly(poly p1, poly p2)
+{
+    return divide_modulus_helper(p1, p2, 1);
+}
+
+/* evaluate polynomial for the given value of the variable and return result */
+double evaluate_poly(poly p, double x)
+{
+    /* starting from first term */
+    term pptr = p->termlist->next;
+    double result = 0;
+    while (pptr != NULL)
+    {
+        /* Summing up all the term and
+        calculating each term value by putting x value */
+        result += pptr->coeff * pow(x, pptr->power);
+        pptr = pptr->next;
+    }
+    return result;
 }
 
 /* ----------------------------------------------------------------------------- */

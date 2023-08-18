@@ -34,11 +34,11 @@ all : $(OBJ_TEST) $(BIN) src_clean
 ##************************* Compilation and target creation *****************##
 
 $(OBJ_TEST): %.o : %.c
-	$(CC) -c $(CFLAGS) $(INC_DIR) $*.c -o $*.o
+	$(CC) -c $(CFLAGS) $(INC_DIR) $*.c -o $*.o -lm
 
 
 $(BIN): $(OBJ_TEST)
-	$(CC) -o $@ $(OBJ_TEST) 
+	$(CC) -o $@ $(OBJ_TEST) -lm
 
 ##***************************************************************************##
 
